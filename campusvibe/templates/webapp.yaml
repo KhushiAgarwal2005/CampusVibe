@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: campusvibe-web
+spec:
+  replicas: {{ .Values.webapp.replicaCount }}
+  selector:
+    matchLabels:
+      app: campusvibe-web
+  template:
+    metadata:
+      labels:
+        app: campusvibe-web
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                   - campusvibe-web
+              topologyKey: kubernetes.io/hostname
+      containers:
+      - name: webapp
+        image: "{{ .Values.webapp.image.repository }}:{{ .Values.webapp.image.tag }}"
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8501
+        
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8501
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          failureThreshold: 3
+
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8501
+
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+
+
+        env:
+        - name: MONGO_URI
+          valueFrom:
+            secretKeyRef:
+               name: campusvibe-secrets
+               key: mongo-uri
+        - name: GROQ_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: campusvibe-secrets
+              key: groq-api-key
+        resources:
+          limits:
+            memory: {{ .Values.resources.limits.memory }}
+            cpu: {{ .Values.resources.limits.cpu }}
+          requests:
+            memory: {{ .Values.resources.requests.memory }}
+            cpu: {{ .Values.resources.requests.cpu }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: campusvibe-web-service
+  annotations:
+    # Tells AWS to provision a high-performance Network Load Balancer
+  #  service.beta.kubernetes.io/aws-load-balancer-type: "external"
+   # service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "instance"
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 8501
+  selector:
+    app: campusvibe-web
