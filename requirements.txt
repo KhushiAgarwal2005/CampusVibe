@@ -1,0 +1,9 @@
+streamlit>=1.30.0
+pymongo>=4.6.0
+llama-index-core
+llama-index-llms-groq
+llama-index-llms-ollama
+llama-index-embeddings-huggingface
+sentence-transformers
+torch --index-url https://download.pytorch.org/whl/cpu
+llama-index-llms-huggingface-api
